@@ -6,6 +6,7 @@ use dotenv::dotenv;
 use sqlx::postgres::PgPoolOptions;
 use std::env;
 use tower::ServiceBuilder;
+use tower_http::cors::{Any, CorsLayer};
 use rollback2025::app_state::AppState;
 use rollback2025::common::middleware::normalize_trailing_slash;
 use rollback2025::handlers::user_handler::{create_user, get_user, get_users};
@@ -65,10 +66,16 @@ async fn main() -> Result<(), sqlx::Error>  {
         user_service: user_service.clone(),
     };
 
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
+
     let app = Router::new()
         .route("/", get(|| async { "Hello, Axum World!" }))
         .route("/users", get(get_users).post(create_user))
         .route("/users/{id}", get(get_user))
+        .layer(cors)
         .with_state(app_state);
 
     let app = ServiceBuilder::new()
