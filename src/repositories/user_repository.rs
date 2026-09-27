@@ -67,4 +67,32 @@ impl UserRepository {
             .await?;
         Ok(users)
     }
+
+    pub async fn update_user(&self, id: u64, name: &str, email: &str) -> AppResult<User> {
+        tracing::info!("Updating user with ID {} in the repository layer", id);
+        let user = sqlx::query_as::<_, User>(
+            "UPDATE users SET name = $1, email = $2 WHERE id = $3 RETURNING id, name, email"
+        )
+        .bind(name)
+        .bind(email)
+        .bind(id as i32)
+        .fetch_optional(&self.pool)
+        .await?
+        .ok_or(AppError::UserNotFound)?;
+        Ok(user)
+    }
+
+    pub async fn delete_user(&self, id: u64) -> AppResult<()> {
+        tracing::info!("Deleting user with ID {} in the repository layer", id);
+        let deleted = sqlx::query("DELETE FROM users WHERE id = $1")
+            .bind(id as i32)
+            .execute(&self.pool)
+            .await?;
+
+        if deleted.rows_affected() == 0 {
+            return Err(AppError::UserNotFound);
+        }
+
+        Ok(())
+    }
 }

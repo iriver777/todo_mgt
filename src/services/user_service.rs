@@ -72,6 +72,41 @@ impl UserService {
 
         Ok(PaginatedResponse::new(items, total, page, page_size))
     }
+
+    pub async fn update_user(&self, id: u64, name: &str, email: &str) -> AppResult<User> {
+        let name = name.trim();
+        let email = email.trim();
+
+        if name.is_empty() {
+            return Err(AppError::ValidationError("name must not be empty".to_string()));
+        }
+        if name.chars().count() > MAX_NAME_LENGTH {
+            return Err(AppError::ValidationError(format!(
+                "name must not exceed {MAX_NAME_LENGTH} characters"
+            )));
+        }
+        if email.is_empty() {
+            return Err(AppError::ValidationError("email must not be empty".to_string()));
+        }
+        if email.chars().count() > MAX_EMAIL_LENGTH {
+            return Err(AppError::ValidationError(format!(
+                "email must not exceed {MAX_EMAIL_LENGTH} characters"
+            )));
+        }
+        if !looks_like_email(email) {
+            return Err(AppError::ValidationError(format!(
+                "`{email}` is not a valid email address"
+            )));
+        }
+
+        tracing::info!("Updating user with ID {} in the service layer", id);
+        self.user_repository.update_user(id, name, email).await
+    }
+
+    pub async fn delete_user(&self, id: u64) -> AppResult<()> {
+        tracing::info!("Deleting user with ID {} in the service layer", id);
+        self.user_repository.delete_user(id).await
+    }
 }
 
 fn looks_like_email(email: &str) -> bool {

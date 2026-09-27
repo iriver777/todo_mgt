@@ -9,7 +9,7 @@ use tower::ServiceBuilder;
 use tower_http::cors::{Any, CorsLayer};
 use rollback2025::app_state::AppState;
 use rollback2025::common::middleware::normalize_trailing_slash;
-use rollback2025::handlers::user_handler::{create_user, get_user, get_users};
+use rollback2025::handlers::user_handler::{create_user, delete_user, get_user, get_users, update_user};
 use rollback2025::services::user_service::UserService;
 use rollback2025::repositories::user_repository::UserRepository;
 
@@ -74,7 +74,7 @@ async fn main() -> Result<(), sqlx::Error>  {
     let app = Router::new()
         .route("/", get(|| async { "Hello, Axum World!" }))
         .route("/users", get(get_users).post(create_user))
-        .route("/users/{id}", get(get_user))
+        .route("/users/{id}", get(get_user).put(update_user).delete(delete_user))
         .layer(cors)
         .with_state(app_state);
 

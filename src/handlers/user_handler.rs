@@ -22,6 +22,12 @@ pub struct CreateUserRequest {
     pub email: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UpdateUserRequest {
+    pub name: String,
+    pub email: String,
+}
+
 pub async fn create_user(
     State(state): State<AppState>,
     Json(payload): Json<CreateUserRequest>,
@@ -44,4 +50,23 @@ pub async fn get_users(
     tracing::info!("Listing users with query params: page={:?}, page_size={:?}", query.page, query.page_size);
     let result = state.user_service.list_users(query.page, query.page_size).await?;
     Ok(Json(ApiResponse::success(result)))
+}
+
+pub async fn update_user(
+    State(state): State<AppState>,
+    Path(id): Path<u64>,
+    Json(payload): Json<UpdateUserRequest>,
+) -> AppResult<Json<ApiResponse<User>>> {
+    tracing::info!("Updating user with ID: {}", id);
+    let user = state.user_service.update_user(id, &payload.name, &payload.email).await?;
+    Ok(Json(ApiResponse::success(user)))
+}
+
+pub async fn delete_user(
+    State(state): State<AppState>,
+    Path(id): Path<u64>,
+) -> AppResult<(StatusCode, Json<ApiResponse<()>>)> {
+    tracing::info!("Deleting user with ID: {}", id);
+    state.user_service.delete_user(id).await?;
+    Ok((StatusCode::NO_CONTENT, Json(ApiResponse::success(()))))
 }
