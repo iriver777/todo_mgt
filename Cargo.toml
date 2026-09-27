@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 axum = "0.8.8"
 tokio = { version = "1.49.0", features = ["full"] }
+tower = { version = "0.5.3", features = ["util"] }
 
 
 # Serialization
@@ -20,7 +21,7 @@ tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "json"] }
 
 # For accessing rsqlite databases
-rqlite-rs = "0.6.2"
+# rqlite-rs = "0.6.2"
 dotenv = "0.15.0"
 thiserror = "2.0.18"
 anyhow = "1.0.102"

@@ -1,17 +1,25 @@
-use axum::Router;
+use axum::{Router, ServiceExt};
+#[allow(unused_imports)]
 use axum::routing::{get, post};
 use std::sync::Arc;
 use dotenv::dotenv;
 use sqlx::postgres::PgPoolOptions;
 use std::env;
+use tower::ServiceBuilder;
 use rollback2025::app_state::AppState;
-use rollback2025::handlers::user_handler::{create_user, get_user};
+use rollback2025::common::middleware::normalize_trailing_slash;
+use rollback2025::handlers::user_handler::{create_user, get_user, get_users};
 use rollback2025::services::user_service::UserService;
 use rollback2025::repositories::user_repository::UserRepository;
 
 #[tokio::main]
 async fn main() -> Result<(), sqlx::Error>  {
-    tracing_subscriber::fmt().init();
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "rollback2025=debug,tower_http=debug,info".into()),
+        )
+        .init();
 
     let app_env = env::var("APP_ENV").unwrap_or_else(|_| "development".to_string());
     tracing::info!("Running in {} mode", app_env);
@@ -59,9 +67,14 @@ async fn main() -> Result<(), sqlx::Error>  {
 
     let app = Router::new()
         .route("/", get(|| async { "Hello, Axum World!" }))
-        .route("/users", post(create_user))
+        .route("/users", get(get_users).post(create_user))
         .route("/users/{id}", get(get_user))
         .with_state(app_state);
+
+    let app = ServiceBuilder::new()
+        .map_request(normalize_trailing_slash)
+        .service(app)
+        .into_make_service();
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8090")
         .await
