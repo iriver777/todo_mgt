@@ -13,13 +13,25 @@ use rollback2025::repositories::user_repository::UserRepository;
 async fn main() -> Result<(), sqlx::Error>  {
     tracing_subscriber::fmt().init();
 
-    dotenv().ok();
+    let app_env = env::var("APP_ENV").unwrap_or_else(|_| "development".to_string());
+    tracing::info!("Running in {} mode", app_env);
 
-    let db_url = env::var("AIVEN_POSTGRES_URL").expect("DATABASE_URL is not set in .env file");
-    println!("DATABASE_URL: {}", db_url);
+    if app_env != "prod" {
+        match dotenv() {
+            Ok(path) => tracing::info!("Loaded environment variables from .env file: {:?}", path),
+            Err(_) => tracing::info!("No .env file found, using system environment variables"),
+        }
+    } else {
+        tracing::info!("prod mode: skipping .env file, using system environment variables only");
+    }
+
+    let db_url = env::var("AIVEN_POSTGRES_URL")
+        .expect("AIVEN_POSTGRES_URL environment variable is not set. \
+                 Either set it as a system environment variable or create a .env file (see .env.example).");
+    tracing::debug!("Database URL loaded (credentials hidden for security)");
 
     let db_pool = PgPoolOptions::new().max_connections(5).connect(&db_url).await?;
-    println!("DB connection established");
+    tracing::info!("Database connection established successfully");
     
     // just for testing connection to the database, remove later
     // let user_name: Option<String> = sqlx::query_scalar("SELECT name FROM users Where id = $1")
